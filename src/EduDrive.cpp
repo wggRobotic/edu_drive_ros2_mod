@@ -310,7 +310,7 @@ namespace edu
             }
         }
 
-        _odometry->update((uint64_t) stampReceived.nanoseconds(), msgRPM.data.at(0),msgRPM.data.at(1),msgRPM.data.at(2),msgRPM.data.at(3));
+        _odometry->update(static_cast<std::uint64_t>(stampReceived.nanoseconds()), edu::Vec(msgRPM.data.begin(), msgRPM.data.end()));
         
         Pose pose = _odometry->get_pose();
         msgTransform.header.stamp = stampReceived;

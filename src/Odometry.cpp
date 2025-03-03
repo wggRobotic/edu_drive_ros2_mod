@@ -1,5 +1,6 @@
 #include "Odometry.h"
 #include <algorithm>
+#include <iostream>
 #include <cmath>
 
 namespace edu
@@ -20,11 +21,7 @@ void Odometry::reset()
     _is_pos_init = false;
     _is_vel_init = false;
 
-    _prev_p0 = 0;
-    _prev_p0 = 0;
-    _prev_p0 = 0;
-    _prev_p0 = 0;
-
+    _prev_pos_vec = edu::Vec(_invKinematics.cols(), 0.0);
     _prev_time_ns = 0;
 
     _pose.x = 0;
@@ -56,31 +53,30 @@ Pose Odometry::get_pose()
     return _pose;
 }
 
-int Odometry::update(double p0, double p1, double p2, double p3)
+int Odometry::update(edu::Vec mot_pos_vec)
 {
+    int size = static_cast<int>(mot_pos_vec.size());
+    if( size !=_invKinematics.cols())
+    {
+        std::cout   << "Odometry::update: Received velocity vector with invalid length. Received "
+                    << mot_pos_vec.size() << "  elements, Expected " <<  _invKinematics.cols() << " elements" << std::endl;
+        return -1;
+    }
+
     int status = 1;
 
     if((_odometry_mode == ODOMETRY_ABSOLUTE_MODE) || (_is_pos_init)){
         
-        double dp0 = 0;
-        double dp1 = 0;
-        double dp2 = 0;
-        double dp3 = 0;
+        edu::Vec vOmega = mot_pos_vec;
 
         // In case absolute values are give, calculate the difference to prev. position
         if(_odometry_mode == ODOMETRY_RELATIVE_MODE){
-            dp0 = p0 - _prev_p0;
-            dp1 = p1 - _prev_p1;
-            dp2 = p2 - _prev_p2;
-            dp3 = p3 - _prev_p3;
-        }else{
-            dp0 = p0;
-            dp1 = p1;
-            dp2 = p2;
-            dp3 = p3;
+            for(int i = 0; i < size; i++){
+                vOmega.at(i) -= _prev_pos_vec.at(i);
+            }
         }
 
-        edu::Vec vOmega({ dp0, dp1, dp2, dp3 });
+        // Calculate new position in robot ksys
         edu::Vec vTwist = _invKinematics * vOmega;
 
         if(std::none_of(vTwist.begin(), vTwist.end(), [](double i){ return std::isnan(i) || std::isinf(i); }))
@@ -94,17 +90,22 @@ int Odometry::update(double p0, double p1, double p2, double p3)
     
     if(status == 1){
         _is_pos_init = true;
-        _prev_p0 = p0;
-        _prev_p0 = p1;
-        _prev_p0 = p2;
-        _prev_p0 = p3;
+        _prev_pos_vec = mot_pos_vec;
     }
 
     return status;
 }
 
-int Odometry::update(uint64_t time_ns, double w0, double w1, double w2, double w3)
+int Odometry::update(uint64_t time_ns, edu::Vec mot_vel_vec)
 {
+    int size = static_cast<int>(mot_vel_vec.size());
+    if(size != _invKinematics.cols())
+    {
+        std::cout   << "Odometry::update: Received velocity vector with invalid length. Received "
+                    << mot_vel_vec.size() << "  elements, Expected " <<  _invKinematics.cols() << " elements" << std::endl;
+        return -1;
+    }
+
     int status = 1;
 
     if((_odometry_mode == ODOMETRY_RELATIVE_MODE) || (_is_vel_init)){
@@ -118,12 +119,13 @@ int Odometry::update(uint64_t time_ns, double w0, double w1, double w2, double w
 
         // Calculate change in motor position
         // Convert rpm to rad per sec
-        double dp0 = w0 * dt_s / 60.0F * 2 * M_PI;
-        double dp1 = w1 * dt_s / 60.0F * 2 * M_PI;
-        double dp2 = w2 * dt_s / 60.0F * 2 * M_PI;
-        double dp3 = w3 * dt_s / 60.0F * 2 * M_PI;
+        edu::Vec vOmega = mot_vel_vec;
+        
+        double factor = dt_s * rpm_to_rad_per_sec_factor;
+        for(auto& v : vOmega){
+            v *= factor;
+        }
 
-        edu::Vec vOmega({ dp0, dp1, dp2, dp3 });
         edu::Vec vTwist = _invKinematics * vOmega;
 
         if(std::none_of(vTwist.begin(), vTwist.end(), [](double i){ return std::isnan(i) || std::isinf(i); }))
