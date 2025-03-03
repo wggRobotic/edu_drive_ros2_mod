@@ -107,12 +107,10 @@ namespace edu
 
         /**
          * Calculate pose-cange in world coordinate system
-         * @param[in] dx Change in x-coordinate in robot ksys
-         * @param[in] dy Change in x-coordinate in robot ksys
-         * @param[in] dtheta Change in orientation
+         * @param[in] twistVec Twist vector describing change in x, y and theta in the robot ksys
          * @retval status 1: o.k., status -1: error in calculation
          */
-        int propagate_position(double dx, double dy, double dtheta);
+        int propagate_position(edu::Vec twistVec);
 
         Pose _pose;
         OdometryMode _odometry_mode;

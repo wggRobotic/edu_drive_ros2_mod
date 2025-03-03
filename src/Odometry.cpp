@@ -1,18 +1,12 @@
 #include "Odometry.h"
+#include <algorithm>
 #include <cmath>
 
 namespace edu
 {
-    
-//Odometry::Odometry(OdometryMode odometry_mode, std::vector<double> kin_m0, std::vector<double> kin_m1, std::vector<double> kin_m2, std::vector<double> kin_m3)
-Odometry::Odometry(OdometryMode odometry_mode, edu::Matrix invKinematicModel) : _invKinematics(invKinematicModel), _odometry_mode(odometry_mode)
-{
-    // Invert kinematic description
-    // ToDo: Validate for skid steering
-    //_inv_kinematics_0 = {1.0F/kin_m0.at(0)/4.0F, 1.0F/kin_m1.at(0)/4.0F, 1.0F/kin_m2.at(0)/4.0F, 1.0F/kin_m3.at(0)/4.0F};
-    //_inv_kinematics_1 = {1.0F/kin_m0.at(1)/4.0F, 1.0F/kin_m1.at(1)/4.0F, 1.0F/kin_m2.at(1)/4.0F, 1.0F/kin_m3.at(1)/4.0F};
-    //_inv_kinematics_2 = {1.0F/kin_m0.at(2)/4.0F, 1.0F/kin_m1.at(2)/4.0F, 1.0F/kin_m2.at(2)/4.0F, 1.0F/kin_m3.at(2)/4.0F};
 
+Odometry::Odometry(OdometryMode odometry_mode, edu::Matrix invKinematicModel) : _odometry_mode(odometry_mode), _invKinematics(invKinematicModel)
+{
     reset();
 }
 
@@ -72,7 +66,6 @@ int Odometry::update(double p0, double p1, double p2, double p3)
         double dp1 = 0;
         double dp2 = 0;
         double dp3 = 0;
-        edu::Vec vOmega(4, 0.0);
 
         // In case absolute values are give, calculate the difference to prev. position
         if(_odometry_mode == ODOMETRY_RELATIVE_MODE){
@@ -87,25 +80,17 @@ int Odometry::update(double p0, double p1, double p2, double p3)
             dp3 = p3;
         }
 
-        // Apply inverse kinematic model
-        //double dx     = _inv_kinematics_0.at(0) * dp0 + _inv_kinematics_0.at(1) * dp1 + _inv_kinematics_0.at(2) * dp2 + _inv_kinematics_0.at(3) * dp3;
-        //double dy     = _inv_kinematics_1.at(0) * dp0 + _inv_kinematics_1.at(1) * dp1 + _inv_kinematics_1.at(2) * dp2 + _inv_kinematics_1.at(3) * dp3;;
-        //double dtheta =  _inv_kinematics_2.at(0) * dp0 + _inv_kinematics_2.at(1) * dp1 + _inv_kinematics_2.at(2) * dp2 + _inv_kinematics_2.at(3) * dp3;;
-
-        double dx = 0.0;
-        double dy = 0.0;
-        double dtheta = 0.0;
+        edu::Vec vOmega({ dp0, dp1, dp2, dp3 });
         edu::Vec vTwist = _invKinematics * vOmega;
 
-
-        if(!std::isnan(dx) || std::isinf(dx)) status = -1;
-        if(!std::isnan(dy) || std::isinf(dy)) status = -1;
-        if(!std::isnan(dtheta) || std::isinf(dtheta)) status = -1;
-
-        // Calculate new position in world ksys
-        if(status == 1) status = propagate_position(dx, dy, dtheta);
+        if(std::none_of(vTwist.begin(), vTwist.end(), [](double i){ return std::isnan(i) || std::isinf(i); }))
+        {
+            // Calculate new position in odom ksys
+            status = propagate_position(vTwist);
+        }else{
+            status = -1;
+        }
     }
-    
     
     if(status == 1){
         _is_pos_init = true;
@@ -127,32 +112,27 @@ int Odometry::update(uint64_t time_ns, double w0, double w1, double w2, double w
         // In case absolute values are give, calculate the difference to prev. time
         double dt_s = (_odometry_mode == ODOMETRY_ABSOLUTE_MODE) ? (double)(time_ns - _prev_time_ns) / 10e9F : (double)time_ns / 10e9F;
         
-        // TODO: Find out where the error is and fix this urgently!
+        // TODO: Find out where the error is and fix this!
         // Magic number fix:
         dt_s *= 10;
 
         // Calculate change in motor position
         // Convert rpm to rad per sec
-        double p0 = w0 * dt_s / 60.0F * 2 * M_PI;
-        double p1 = w1 * dt_s / 60.0F * 2 * M_PI;
-        double p2 = w2 * dt_s / 60.0F * 2 * M_PI;
-        double p3 = w3 * dt_s / 60.0F * 2 * M_PI;
+        double dp0 = w0 * dt_s / 60.0F * 2 * M_PI;
+        double dp1 = w1 * dt_s / 60.0F * 2 * M_PI;
+        double dp2 = w2 * dt_s / 60.0F * 2 * M_PI;
+        double dp3 = w3 * dt_s / 60.0F * 2 * M_PI;
 
-        // Apply inverse kinematic model
-        //double dx     = _inv_kinematics_0.at(0) * p0 + _inv_kinematics_0.at(1) * p1 + _inv_kinematics_0.at(2) * p2 + _inv_kinematics_0.at(3) * p3;
-        //double dy     = _inv_kinematics_1.at(0) * p0 + _inv_kinematics_1.at(1) * p1 + _inv_kinematics_1.at(2) * p2 + _inv_kinematics_1.at(3) * p3;;
-        //double dtheta =  _inv_kinematics_2.at(0) * p0 + _inv_kinematics_2.at(1) * p1 + _inv_kinematics_2.at(2) * p2 + _inv_kinematics_2.at(3) * p3;;
-        
-        double dx = 0.0;
-        double dy = 0.0;
-        double dtheta = 0.0;
+        edu::Vec vOmega({ dp0, dp1, dp2, dp3 });
+        edu::Vec vTwist = _invKinematics * vOmega;
 
-        if(std::isnan(dx) || std::isinf(dx)) status = -1;
-        if(std::isnan(dy) || std::isinf(dy)) status = -1;
-        if(std::isnan(dtheta) || std::isinf(dtheta)) status = -1;
-
-        // Calculate new position in world ksys
-        if(status == 1) status = propagate_position(dx, dy, dtheta);
+        if(std::none_of(vTwist.begin(), vTwist.end(), [](double i){ return std::isnan(i) || std::isinf(i); }))
+        {
+            // Calculate new position in odom ksys
+            status = propagate_position(vTwist);
+        }else{
+            status = -1;
+        }
     }
 
     if(status == 1){
@@ -163,9 +143,13 @@ int Odometry::update(uint64_t time_ns, double w0, double w1, double w2, double w
     return status;
 }
 
-int Odometry::propagate_position(double dx, double dy, double dtheta)
+int Odometry::propagate_position(edu::Vec twistVec)
 {
     int status = 1;
+
+    auto dx     = twistVec[0];
+    auto dy     = twistVec[1];
+    auto dtheta = twistVec[2];
 
     // Euclidean distance of last move
     double ds = sqrt(dx*dx+dy*dy);
