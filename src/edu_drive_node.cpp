@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
          edu_drive->declare_parameter(driveID + std::string(".encoderRatio"), 0.f);
          edu_drive->declare_parameter(driveID + std::string(".rpmMax"), 0.f);
          edu_drive->declare_parameter(driveID + std::string(".invertEnc"), 0);
+         edu_drive->declare_parameter(driveID + std::string(".mappingIndex"), c * 2 + d);
 
          cp.motorParams[d].channel        = edu_drive->get_parameter(driveID + std::string(".channel")).as_int();
          cp.motorParams[d].kinematics     = edu_drive->get_parameter(driveID + std::string(".kinematics")).as_double_array();
@@ -98,6 +99,7 @@ int main(int argc, char *argv[])
          cp.motorParams[d].encoderRatio   = edu_drive->get_parameter(driveID + std::string(".encoderRatio")).as_double();
          cp.motorParams[d].rpmMax         = edu_drive->get_parameter(driveID + std::string(".rpmMax")).as_double();
          cp.motorParams[d].invertEnc      = edu_drive->get_parameter(driveID + std::string(".invertEnc")).as_int();
+         cp.motorParams[d].mappingIndex   = edu_drive->get_parameter(driveID + std::string(".mappingIndex")).as_int();
       }
       // ------------------------------
 

@@ -77,6 +77,8 @@ public:
      */
     void velocityCallback(const geometry_msgs::msg::Twist::SharedPtr cmd);
 
+    void rpmCallback(const std_msgs::msg::Float32MultiArray::SharedPtr rpms);
+
     /**
      * @brief 
      */
@@ -97,6 +99,7 @@ private:
     // Input topics / services
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr           _subJoy;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr       _subVel;
+    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr _subRPM;
     rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr               _srvEnable;
 
     // Data available from motor controllers
@@ -112,6 +115,9 @@ private:
     // Data available from power management board
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr             _pubVoltagePwrMgmt;
     rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr             _pubCurrentPwrMgmt;
+
+    //mapping
+    std::vector<std::array<unsigned int, 2>> _rpm_motor_controller_mapping;
 
     // Odometry
     std::unique_ptr<tf2_ros::TransformBroadcaster>                   _tf_broadcaster;

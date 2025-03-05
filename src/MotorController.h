@@ -27,6 +27,7 @@ namespace edu
     float gearRatio;
     float encoderRatio;
     float rpmMax;
+    unsigned int mappingIndex;
     
     MotorParams()
     {
@@ -35,6 +36,7 @@ namespace edu
       gearRatio     = 0.0f;
       encoderRatio  = 0.0f;
       rpmMax        = 0.0f;
+      mappingIndex  = 0;
       kinematics.clear();
       responseMode = CAN_RESPONSE_RPM;
     }
@@ -52,6 +54,7 @@ namespace edu
       encoderRatio  = p.encoderRatio;
       rpmMax        = p.rpmMax;
       invertEnc     = p.invertEnc;
+      mappingIndex  = p.mappingIndex;
     }
   };
 

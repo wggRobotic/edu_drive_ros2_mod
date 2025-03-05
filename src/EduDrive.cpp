@@ -44,6 +44,7 @@ namespace edu
         
         _subJoy     = this->create_subscription<sensor_msgs::msg::Joy>("joy", 1, std::bind(&EduDrive::joyCallback, this, std::placeholders::_1));
         _subVel     = this->create_subscription<geometry_msgs::msg::Twist>("vel/teleop", 10, std::bind(&EduDrive::velocityCallback, this, std::placeholders::_1));
+        _subRPM     = this->create_subscription<std_msgs::msg::Float32MultiArray>("vel/rpm", 10, std::bind(&EduDrive::rpmCallback, this, std::placeholders::_1));
         _srvEnable  = this->create_service<std_srvs::srv::SetBool>("enable", std::bind(&EduDrive::enableCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
         // Publisher of motor shields
@@ -91,6 +92,13 @@ namespace edu
         for (unsigned int i = 0; i < cp.size(); ++i)
         {
             _mc.push_back(new MotorController(&can, cp[i], verbosity));
+
+            std::array<unsigned int, 2> mapping_indices = {
+                cp[i].motorParams[0].mappingIndex,
+                cp[i].motorParams[1].mappingIndex
+            };
+
+            _rpm_motor_controller_mapping.push_back(mapping_indices);
             
             for(unsigned int j=0; j<_mc[i]->getMotorParams().size(); j++)
             {
@@ -209,6 +217,33 @@ namespace edu
         controlMotors(cmd->linear.x, cmd->linear.y, cmd->angular.z);
     }
 
+    void EduDrive::rpmCallback(const std_msgs::msg::Float32MultiArray::SharedPtr rpms)
+    {
+        _lastCmd = this->get_clock()->now();
+        
+        if (rpms->data.size() == 2 * _mc.size())
+        {
+            for (unsigned int i = 0; i < _mc.size(); ++i)
+            {
+                float w[2] = {0.f, 0.f};
+
+                if (_rpm_motor_controller_mapping[i][0] < rpms->data.size())
+                    w[0] = rpms->data[_rpm_motor_controller_mapping[i][0]];
+
+                if (_rpm_motor_controller_mapping[i][1] < rpms->data.size())
+                    w[1] = rpms->data[_rpm_motor_controller_mapping[i][1]];
+
+                _mc[i]->setRPM(w);
+
+                if (_verbosity)
+                    RCLCPP_INFO_STREAM(this->get_logger(), "#EduDrive Setting RPM for drive" << i << " to " << w[0] << " " << w[1]);
+            }
+        }
+        else if (_verbosity)
+            RCLCPP_INFO_STREAM(this->get_logger(), "#Received rpmMessage of length " << rpms->data.size() << " instead of expected length " << _mc.size() * 2);
+
+    }
+
     bool EduDrive::enableCallback(const std::shared_ptr<rmw_request_id_t> header, const std::shared_ptr<std_srvs::srv::SetBool_Request> request, const std::shared_ptr<std_srvs::srv::SetBool_Response> response)
     {
         // suppress warning about unused variable header
@@ -263,8 +298,11 @@ namespace edu
         for (std::vector<MotorController *>::iterator it = std::begin(_mc); it != std::end(_mc); ++it)
         {        
 	        controllersInitialized = controllersInitialized && (*it)->isInitialized();
-	     }
+	    }
         
+        msgRPM.data.resize(_mc.size() * 2);
+        unsigned int iterator_index = 0;
+
         for (std::vector<MotorController *>::iterator it = std::begin(_mc); it != std::end(_mc); ++it)
         {
             float response[2] = {0, 0};
@@ -293,9 +331,15 @@ namespace edu
                     disable();
                 }
             }
-            msgRPM.data.push_back(response[0]);
-            msgRPM.data.push_back(response[1]);
+
+            if (_rpm_motor_controller_mapping[iterator_index][0] < msgRPM.data.size())
+                msgRPM.data[_rpm_motor_controller_mapping[iterator_index][0]] = response[0];
+            if (_rpm_motor_controller_mapping[iterator_index][1] < msgRPM.data.size())
+                msgRPM.data[_rpm_motor_controller_mapping[iterator_index][1]] = response[1];
+
             msgEnabled.data.push_back(enableState);
+
+            iterator_index++;
         }
         
         rclcpp::Time stampReceived = this->get_clock()->now();
