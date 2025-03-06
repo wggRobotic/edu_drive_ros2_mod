@@ -24,6 +24,7 @@ def generate_launch_description():
       ('enable', 'wheels/enable'),
       ('enabled', 'wheels/enabled'),
       ('rpm', 'wheels/rpm/feedback'),
+      ('vel/rpm', 'wheels/rpm/cmd'),
 
       ('joy', '_unused_/joy'),
       ('vel/teleop', '_unused_/vel/teleop')

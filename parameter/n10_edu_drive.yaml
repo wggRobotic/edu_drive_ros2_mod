@@ -24,7 +24,7 @@
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [0.0, 0.0, 0.0]
-        mappingIndex: 0
+        mappingIndex: 5
       drive1:
         channel: 1
         gearRatio: 70.0
@@ -32,7 +32,7 @@
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [0.0, 0.0, 0.0]
-        mappingIndex: 1
+        mappingIndex: 4
   
     controller1:
       canID: 1
@@ -51,7 +51,7 @@
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [0.0, 0.0, 0.0]
-        mappingIndex: 3
+        mappingIndex: 0
 
     controller2:
       canID: 2
@@ -62,7 +62,7 @@
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [0.0, 0.0, 0.0]
-        mappingIndex: 4
+        mappingIndex: 1
       drive1:
         channel: 1
         gearRatio: 70.0
@@ -70,4 +70,4 @@
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [0.0, 0.0, 0.0]
-        mappingIndex: 5
+        mappingIndex: 3
