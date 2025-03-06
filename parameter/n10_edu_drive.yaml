@@ -7,8 +7,8 @@
     inputWeight: 0.2
     maxPulseWidth: 100
     timeout: 300
-    kp: 0.0
-    ki: 0.0
+    kp: 0.4
+    ki: 4.0
     kd: 0.0
     antiWindup: 1
     responseMode: 0

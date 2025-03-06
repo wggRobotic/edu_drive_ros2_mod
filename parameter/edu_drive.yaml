@@ -20,14 +20,14 @@
       drive0:
         channel: 0
         gearRatio: 70.0
-        encoderRatio: 64.0
+        encoderRatio: 2048.0
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [20.0, 0.0, -6.1]
       drive1:
         channel: 1
         gearRatio: 70.0
-        encoderRatio: 64.0
+        encoderRatio: 2048.0
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [-20.0, 0.0, -6.1]
@@ -37,14 +37,14 @@
       drive0:
         channel: 0
         gearRatio: 70.0
-        encoderRatio: 64.0
+        encoderRatio: 2048.0
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [20.0, 0.0, -6.1]
       drive1:
         channel: 1
         gearRatio: 70.0
-        encoderRatio: 64.0
+        encoderRatio: 2048.0
         rpmMax: 140.0
         invertEnc: 1
         kinematics: [-20.0, 0.0, -6.1]
